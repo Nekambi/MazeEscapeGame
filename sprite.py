@@ -3,7 +3,9 @@ import os
 from collections import deque
 import os
 
-assets = 'assets'
+base_dir = os.path.dirname(__file__)
+assets = os.path.join(base_dir, "assets")
+
 #Image loader
 def load_images(folder_path, num_images):
     images = [] #holds loaded images
@@ -22,29 +24,29 @@ def load_character_sprites():
     return idle_images, run_images
 
 #BFS for enenemy
-def bfs(maze, start, goal):
-    rows, cols = len(maze), len(maze[0])
-    queue = deque([start])
-    visited = set([start])
-    parent = {start: None}
+# def bfs(maze, start, goal):
+#     rows, cols = len(maze), len(maze[0])
+#     queue = deque([start])
+#     visited = set([start])
+#     parent = {start: None}
 
-    while queue:
-        current = queue.popleft()
-        if current == goal:
-            path = []
-            while current:
-                path.append(current)
-                current = parent[current]
-            return path[::-1] 
+#     while queue:
+#         current = queue.popleft()
+#         if current == goal:
+#             path = []
+#             while current:
+#                 path.append(current)
+#                 current = parent[current]
+#             return path[::-1] 
         
-        x, y = current
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]: #Only Vertical and horizontal movement
-            neighbor = (x + dx, y + dy)
-            if 0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols: #Checks Bounds
-                if maze[neighbor[0]][neighbor[1]] == 0 and neighbor not in visited: #Walkable check
-                    #print(f'Adding neighbor {neighbor} to the queue.')
-                    queue.append(neighbor)
-                    visited.add(neighbor)
-                    parent[neighbor] = current
+#         x, y = current
+#         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]: #Only Vertical and horizontal movement
+#             neighbor = (x + dx, y + dy)
+#             if 0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols: #Checks Bounds
+#                 if maze[neighbor[0]][neighbor[1]] == 0 and neighbor not in visited: #Walkable check
+#                     #print(f'Adding neighbor {neighbor} to the queue.')
+#                     queue.append(neighbor)
+#                     visited.add(neighbor)
+#                     parent[neighbor] = current
                 
-    return[] #No path found
+#     return[] #No path found

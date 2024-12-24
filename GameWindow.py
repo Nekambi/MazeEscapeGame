@@ -3,7 +3,7 @@ import random
 import sys
 import os
 from sprite import load_character_sprites
-from sprite import bfs
+#from sprite import bfs
 
 pygame.init()
 #Font
@@ -27,8 +27,8 @@ RED = (255, 0, 0)
 GREEN =(0, 255, 0)
 WHITE =  (255, 255, 255)
 #file paths
-assets = "assets"
-
+base_dir = os.path.dirname(__file__)
+assets = os.path.join(base_dir, "assets")
 #Sound Effects
 pygame.mixer.music.load(os.path.join( assets, "pacman background music.ogg"))
 pygame.mixer.music.play(-1) #Indefinite loop
@@ -145,50 +145,70 @@ def initialize_game():
     start_ticks = pygame.time.get_ticks() #Resets timer
 
     enemies = [
-       {"x": 10 * block_size, "y": 7 * block_size, "speed_x": 10, "speed_y":10, "type": "chaser",'initial_speed_x': 8, 'initial_speed_y': 8},           
+       {"x": 10 * block_size, "y": 7 * block_size, "speed_x": 10, "speed_y":10, "type": "chaser",'initial_speed_x': 10, 'initial_speed_y': 10},           
        {"x": 31 * block_size, "y": 2 * block_size, "speed_x": 5, "speed_y":10, "type": "patrol",'initial_speed_x': 5, 'initial_speed_y': 10},
        {"x": 8 * block_size, "y": 20 * block_size, "speed_x": 5, "speed_y":8, "type": "patrol",'initial_speed_x': 5, 'initial_speed_y': 8},
-       {"x": 20 * block_size, "y": 14 * block_size, "speed_x": 12, "speed_y":12, "type": "chaser",'initial_speed_x': 8, 'initial_speed_y': 8},
+       {"x": 20 * block_size, "y": 14 * block_size, "speed_x": 10, "speed_y":10, "type": "chaser",'initial_speed_x': 10, 'initial_speed_y': 10},
        {"x": 20 * block_size, "y": 22 * block_size, "speed_x": 8, "speed_y":0, "type": "patrol",'initial_speed_x': 8, 'initial_speed_y': 0},
        {"x": 8 * block_size, "y": 11 * block_size, "speed_x": 8, "speed_y":0, "type": "patrol",'initial_speed_x': 8, 'initial_speed_y': 0},
        {"x": 23 * block_size, "y": 4 * block_size, "speed_x": 8, "speed_y":0, "type": "patrol",'initial_speed_x': 8, 'initial_speed_y': 0},
     ]
 
-def move_enemies(maze, enemies, player_pos, detection_radius, block_size, step_size=8):
+def move_enemies(maze, enemies, player_pos, block_size, step_size=8):
     for enemy in enemies:
-        ex, ey = enemy['x'] // block_size, enemy['y'] // block_size
-        px, py = player_pos[0] // block_size, player_pos[1] // block_size
+        ex, ey = enemy['x'], enemy['y']
+        px, py = player_pos
 
-        distance = ((ex - px) ** 2 + (ey - py) ** 2) ** 0.5
-        #bfs recalculation logic
-        enemy['bfs_timer'] = enemy.get('bfs_timer', 0) + 1
-        #Check if player is in detection range
-        if distance < detection_radius and enemy["bfs_timer"] >= 10:
-            path = bfs(maze, (ex, ey), (px, py))
-            enemy['path'] = path
-            enemy['bfs_timer'] = 0
-        else:
-            path = enemy.get('path', [])
-           
-            if path and len(path) > 1: #Valid path
-                next_step = path[1]  
-                if maze[next_step[1]][next_step[0]] == 0:
-                    next_x, next_y = next_step[0] * block_size, next_step[1] * block_size
-                #Calculate movement direction
-                    dx = next_x - enemy['x']
-                    dy = next_y - enemy['y']
+        # Determine direction to move based on player's position
+        if abs(px - ex) > abs(py - ey):  # Prioritize horizontal movement
+            if px < ex and maze[ey // block_size][(ex - step_size) // block_size] == 0:
+                enemy['x'] -= step_size  # Move left
+            elif px > ex and maze[ey // block_size][(ex + step_size) // block_size] == 0:
+                enemy['x'] += step_size  # Move right
+        else:  # Prioritize vertical movement
+            if py < ey and maze[(ey - step_size) // block_size][ex // block_size] == 0:
+                enemy['y'] -= step_size  # Move up
+            elif py > ey and maze[(ey + step_size) // block_size][ex // block_size] == 0:
+                enemy['y'] += step_size  # Move down
+    # for enemy in enemies:
+    #     ex, ey = enemy['x'] // block_size, enemy['y'] // block_size
+    #     px, py = player_pos[0] // block_size, player_pos[1] // block_size
 
-                #Check if the next position is walkable
-                    if abs(dx) > step_size: # x Direction
-                        enemy['x'] += step_size if dx > 0 else -step_size
-                    else:
-                        enemy['x'] = next_x
-                
-                    if abs(dy) > step_size: # y direction
-                        enemy['y'] += step_size if dy > 0 else -step_size
-                    else:
-                        enemy['y'] = next_y
-                
+    #     distance = ((ex - px) ** 2 + (ey - py) ** 2) ** 0.5
+    #     enemy['bfs_timer'] = enemy.get('bfs_timer', 0) + 1
+
+    #     if distance < detection_radius and enemy['bfs_timer'] >= 10:
+    #         # Recalculate path using BFS
+    #         path = bfs(maze, (ex, ey), (px, py))
+    #         enemy['path'] = path
+    #         enemy['bfs_timer'] = 0
+    #     else:
+    #         path = enemy.get('path', [])
+            
+    #         if path and len(path) > 1:  # Follow path if valid
+    #             next_step = path[1]
+    #             if maze[next_step[1]][next_step[0]] == 0:
+    #                 next_x, next_y = next_step[0] * block_size, next_step[1] * block_size
+
+    #                 # Calculate movement direction
+    #                 dx = next_x - enemy['x']
+    #                 dy = next_y - enemy['y']
+
+    #                 # Move in x-direction
+    #                 if abs(dx) > step_size:
+    #                     enemy['x'] += step_size if dx > 0 else -step_size
+    #                 else:
+    #                     enemy['x'] = next_x
+
+    #                 # Move in y-direction
+    #                 if abs(dy) > step_size:
+    #                     enemy['y'] += step_size if dy > 0 else -step_size
+    #                 else:
+    #                     enemy['y'] = next_y
+
+    #         # Clear path if reached the goal
+    #         if path and len(path) == 1:
+    #             enemy['path'] = []
 
 initialize_game()
 
@@ -273,6 +293,8 @@ while running:
                  enemy["y"] += enemy['speed_y']
               else:
                  enemy['speed_y'] *= -1
+        elif enemy['type'] == "chaser":
+            move_enemies(maze, [enemy], player_pos=(player_x, player_y), block_size= block_size, step_size=8)
         if abs(enemy["x"] - player_x) < block_size and abs(enemy["y"] - player_y) < block_size: ##########
             game_over_sound.play()
             print('Game Over!')
@@ -288,8 +310,8 @@ while running:
             window.blit(patrol_image, (enemy["x"], enemy["y"]))
         elif enemy["type"] == 'chaser':
             window.blit(chaser_image, (enemy["x"], enemy["y"]))
-    chaser_enemies = [enemy for enemy in enemies if enemy['type'] == "chaser"]
-    move_enemies(maze, chaser_enemies, player_pos=(player_x, player_y), detection_radius=500, block_size=block_size)
+    #chaser_enemies = [enemy for enemy in enemies if enemy['type'] == "chaser"]
+    #move_enemies_simple(maze, enemies, player_pos, block_size, step_size=8)
                     
     #key rendering
     if not has_key:
