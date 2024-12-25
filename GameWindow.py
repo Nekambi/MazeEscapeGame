@@ -2,6 +2,7 @@ import pygame
 import random
 import sys
 import os
+import math
 from sprite import load_character_sprites
 #from sprite import bfs
 
@@ -84,6 +85,7 @@ patrol_image = pygame.image.load(os.path.join(assets,"patrol.png")).convert_alph
 patrol_image = pygame.transform.scale(patrol_image, (block_size, block_size)) #Ensures it fits in block
 chaser_image = pygame.image.load(os.path.join(assets,"chaser.png")).convert_alpha()
 chaser_image = pygame.transform.scale(chaser_image, (block_size, block_size)) #Ensures it fits in block
+enemy_size = block_size
 #Player image
 idle_images, run_images = load_character_sprites()
 player_size = block_size - 4
@@ -98,23 +100,23 @@ door_image = pygame.image.load(os.path.join(assets, "door.png")).convert_alpha()
 door_image = pygame.transform.scale(door_image, (block_size, block_size)) #Ensures it fits in block
 
 #Check for collisions with walls
-def can_move(x, y, maze):
-    #Corners of player rectangle
+def can_move(x, y, maze, size):
+    # Corners of the rectangle (player or enemy)
     corners = [
-        (x, y), #top left
-        (x + player_size , y), #top right
-        (x, y + player_size), #bottom left
-        (x + player_size , y + player_size), #bottom rigt
+        (x, y),  # top-left
+        (x + size, y),  # top-right
+        (x, y + size),  # bottom-left
+        (x + size, y + size),  # bottom-right
     ]
     for cx, cy in corners:
-            grid_x = cx // block_size
-            grid_y = cy // block_size
+        grid_x = cx // block_size
+        grid_y = cy // block_size
 
-            if grid_x < 0 or grid_y < 0 or grid_x >= len(maze[0]) or grid_y >= len(maze):
-               return False
-            if maze[grid_y][grid_x] == 1:
-                return False
-            
+        if grid_x < 0 or grid_y < 0 or grid_x >= len(maze[0]) or grid_y >= len(maze):
+            return False
+        if maze[grid_y][grid_x] == 1:
+            return False
+
     return True
 
 has_won = False #win text
@@ -154,7 +156,7 @@ def initialize_game():
        {"x": 23 * block_size, "y": 4 * block_size, "speed_x": 8, "speed_y":0, "type": "patrol",'initial_speed_x': 8, 'initial_speed_y': 0},
     ]
 
-def move_enemies(maze, enemies, player_pos, block_size, step_size=8):
+def move_enemies(maze, enemies, player_pos, block_size, step_size= block_size // 2):
     for enemy in enemies:
         ex, ey = enemy['x'], enemy['y']
         px, py = player_pos
@@ -170,45 +172,15 @@ def move_enemies(maze, enemies, player_pos, block_size, step_size=8):
                 enemy['y'] -= step_size  # Move up
             elif py > ey and maze[(ey + step_size) // block_size][ex // block_size] == 0:
                 enemy['y'] += step_size  # Move down
-    # for enemy in enemies:
-    #     ex, ey = enemy['x'] // block_size, enemy['y'] // block_size
-    #     px, py = player_pos[0] // block_size, player_pos[1] // block_size
 
-    #     distance = ((ex - px) ** 2 + (ey - py) ** 2) ** 0.5
-    #     enemy['bfs_timer'] = enemy.get('bfs_timer', 0) + 1
-
-    #     if distance < detection_radius and enemy['bfs_timer'] >= 10:
-    #         # Recalculate path using BFS
-    #         path = bfs(maze, (ex, ey), (px, py))
-    #         enemy['path'] = path
-    #         enemy['bfs_timer'] = 0
-    #     else:
-    #         path = enemy.get('path', [])
-            
-    #         if path and len(path) > 1:  # Follow path if valid
-    #             next_step = path[1]
-    #             if maze[next_step[1]][next_step[0]] == 0:
-    #                 next_x, next_y = next_step[0] * block_size, next_step[1] * block_size
-
-    #                 # Calculate movement direction
-    #                 dx = next_x - enemy['x']
-    #                 dy = next_y - enemy['y']
-
-    #                 # Move in x-direction
-    #                 if abs(dx) > step_size:
-    #                     enemy['x'] += step_size if dx > 0 else -step_size
-    #                 else:
-    #                     enemy['x'] = next_x
-
-    #                 # Move in y-direction
-    #                 if abs(dy) > step_size:
-    #                     enemy['y'] += step_size if dy > 0 else -step_size
-    #                 else:
-    #                     enemy['y'] = next_y
-
-    #         # Clear path if reached the goal
-    #         if path and len(path) == 1:
-    #             enemy['path'] = []
+def is_close(enemy_pos, player_pos, threshold=150):
+    ex, ey = enemy_pos[0] + enemy_size // 2, enemy_pos[1] + enemy_size // 2
+    px, py = player_pos[0] + player_size // 2, player_pos[1] + player_size // 2
+    a = ex - px
+    b = ey - py
+    distance = math.sqrt(a ** 2 + b ** 2)
+    #print(f"Distance to player: {distance}, Threshold: {threshold}")
+    return distance < threshold
 
 initialize_game()
 
@@ -241,22 +213,22 @@ while running:
     flip_horizontal = False
     rotation_angle = 0
 
-    if keys[pygame.K_LEFT] and can_move(player_x - player_speed, player_y, maze):
+    if keys[pygame.K_LEFT] and can_move(player_x - player_speed, player_y, maze, player_size):
         player_x -= player_speed
         state = "run"
         flip_horizontal = True
         rotation_angle = 0
-    elif keys[pygame.K_RIGHT] and can_move(player_x + player_speed, player_y, maze):
+    elif keys[pygame.K_RIGHT] and can_move(player_x + player_speed, player_y, maze, player_size ):
         player_x += player_speed
         state = "run"
         flip_horizontal = False
         rotation_angle = 0
-    elif keys[pygame.K_UP] and can_move(player_x, player_y - player_speed, maze):
+    elif keys[pygame.K_UP] and can_move(player_x, player_y - player_speed, maze, player_size):
         player_y -= player_speed
         state = "run"
         flip_horizontal = False
         rotation_angle = 90
-    elif keys[pygame.K_DOWN] and can_move(player_x, player_y + player_speed, maze):
+    elif keys[pygame.K_DOWN] and can_move(player_x, player_y + player_speed, maze, player_size):
         player_y += player_speed
         state = "run"
         flip_horizontal = False
@@ -285,17 +257,64 @@ while running:
            enemy['speed_x'] = min(enemy['speed_x'], block_size)
            enemy['speed_y'] = min(enemy['speed_y'], block_size)
            
-           if can_move(enemy['x'] + enemy['speed_x'], enemy['y'], maze):
+           if can_move(enemy['x'] + enemy['speed_x'], enemy['y'], maze, enemy_size):
             enemy['x'] += enemy['speed_x']
            else:
               enemy['speed_x'] *= -1 #Reverse direction
-              if can_move(enemy['x'], enemy['y'] + enemy['speed_y'], maze):
+              if can_move(enemy['x'], enemy['y'] + enemy['speed_y'], maze, enemy_size):
                  enemy["y"] += enemy['speed_y']
               else:
                  enemy['speed_y'] *= -1
+
         elif enemy['type'] == "chaser":
-            move_enemies(maze, [enemy], player_pos=(player_x, player_y), block_size= block_size, step_size=8)
-        if abs(enemy["x"] - player_x) < block_size and abs(enemy["y"] - player_y) < block_size: ##########
+            # Align enemy position to grid
+            enemy['x'] = (enemy['x'] // block_size) * block_size
+            enemy['y'] = (enemy['y'] // block_size) * block_size
+
+            # Check if the enemy is close enough to start chasing
+            if is_close((enemy['x'], enemy['y']), (player_x, player_y), threshold=150):
+                px, py = player_x // block_size, player_y // block_size
+                ex, ey = enemy['x'] // block_size, enemy['y'] // block_size
+
+                dx = px - ex
+                dy = py - ey
+                # Initialize cooldown timer if not already set
+                enemy["direction_cooldown"] = enemy.get("direction_cooldown", 0)
+
+                # Reduce cooldown timer
+                if enemy["direction_cooldown"] > 0:
+                    enemy["direction_cooldown"] -= 1
+                else:
+                    # Store previous direction to avoid jittering
+                    prev_direction = enemy.get("prev_direction", (0, 0))
+
+                    # Prioritize movement direction
+                    directions = []
+                    if abs(dx) > abs(dy):  # Horizontal priority
+                        directions = [(1 if dx > 0 else -1, 0), (0, 1 if dy > 0 else -1)]
+                    else:  # Vertical priority
+                        directions = [(0, 1 if dy > 0 else -1), (1 if dx > 0 else -1)]
+                    
+                    # Attempt movement in prioritized directions
+                    moved = False
+                    for step_x, step_y in directions:
+                        new_x = enemy['x'] + step_x * block_size
+                        new_y = enemy['y'] + step_y * block_size
+
+                        # Avoids reversing direction unnecessarily
+                        if (step_x, step_y) != (-prev_direction[0], -prev_direction[1]) and can_move(new_x, new_y, maze, enemy_size):
+                           enemy['x'] += step_x * block_size
+                           enemy['y'] += step_y * block_size
+                           enemy["prev_direction"] = (step_x, step_y)  # Update previous direction
+                           enemy["direction_cooldown"] = 5  # Sets cooldown period
+                           moved = True
+                           break
+                    # If no movement is possible, resets previous direction
+                    if not moved:
+                       enemy["prev_direction"] = (0, 0)  # No movement
+
+    # Check for collision with player
+        if abs(enemy["x"] - player_x) < block_size and abs(enemy["y"] - player_y) < block_size: 
             game_over_sound.play()
             print('Game Over!')
             text = large_font.render("YOU WERE CAUGHT!", True, RED)
@@ -310,9 +329,7 @@ while running:
             window.blit(patrol_image, (enemy["x"], enemy["y"]))
         elif enemy["type"] == 'chaser':
             window.blit(chaser_image, (enemy["x"], enemy["y"]))
-    #chaser_enemies = [enemy for enemy in enemies if enemy['type'] == "chaser"]
-    #move_enemies_simple(maze, enemies, player_pos, block_size, step_size=8)
-                    
+    
     #key rendering
     if not has_key:
         window.blit(key_image, (key_x, key_y)) #Inserts key image
