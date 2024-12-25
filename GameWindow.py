@@ -266,53 +266,56 @@ while running:
               else:
                  enemy['speed_y'] *= -1
 
-        elif enemy['type'] == "chaser":
-            # Align enemy position to grid
+        elif enemy['type'] == "chaser":  
+             # Align enemy position to grid
             enemy['x'] = (enemy['x'] // block_size) * block_size
             enemy['y'] = (enemy['y'] // block_size) * block_size
 
             # Check if the enemy is close enough to start chasing
             if is_close((enemy['x'], enemy['y']), (player_x, player_y), threshold=150):
+                print(f"Chaser {enemy} is close to the player at ({player_x}, {player_y}).")
                 px, py = player_x // block_size, player_y // block_size
                 ex, ey = enemy['x'] // block_size, enemy['y'] // block_size
 
                 dx = px - ex
                 dy = py - ey
+
                 # Initialize cooldown timer if not already set
                 enemy["direction_cooldown"] = enemy.get("direction_cooldown", 0)
 
                 # Reduce cooldown timer
                 if enemy["direction_cooldown"] > 0:
-                    enemy["direction_cooldown"] -= 1
+                   enemy["direction_cooldown"] -= 1
                 else:
-                    # Store previous direction to avoid jittering
-                    prev_direction = enemy.get("prev_direction", (0, 0))
+                   # Store previous direction to avoid jittering
+                   prev_direction = enemy.get("prev_direction", (0, 0))
 
-                    # Prioritize movement direction
-                    directions = []
-                    if abs(dx) > abs(dy):  # Horizontal priority
-                        directions = [(1 if dx > 0 else -1, 0), (0, 1 if dy > 0 else -1)]
-                    else:  # Vertical priority
-                        directions = [(0, 1 if dy > 0 else -1), (1 if dx > 0 else -1)]
-                    
-                    # Attempt movement in prioritized directions
-                    moved = False
-                    for step_x, step_y in directions:
+                  # Determine movement directions
+                   if abs(dx) > abs(dy):  # Horizontal priority
+                      directions = [(1 if dx > 0 else -1, 0), (0, 1 if dy > 0 else -1)]
+                   else:  # Vertical priority
+                       directions = [(0, 1 if dy > 0 else -1), (1 if dx > 0 else -1, 0)]
+                   print(f"Directions for enemy at ({enemy['x']}, {enemy['y']}): {directions}")
+                     # Attempt movement in prioritized directions
+                   moved = False
+                   for step_x, step_y in directions:
                         new_x = enemy['x'] + step_x * block_size
                         new_y = enemy['y'] + step_y * block_size
 
-                        # Avoids reversing direction unnecessarily
+                        # Avoid reversing direction unnecessarily
                         if (step_x, step_y) != (-prev_direction[0], -prev_direction[1]) and can_move(new_x, new_y, maze, enemy_size):
-                           enemy['x'] += step_x * block_size
-                           enemy['y'] += step_y * block_size
-                           enemy["prev_direction"] = (step_x, step_y)  # Update previous direction
-                           enemy["direction_cooldown"] = 5  # Sets cooldown period
-                           moved = True
-                           break
-                    # If no movement is possible, resets previous direction
-                    if not moved:
-                       enemy["prev_direction"] = (0, 0)  # No movement
+                            print(f"Chaser moving from ({enemy['x']}, {enemy['y']}) to ({new_x}, {new_y}).")
+                            enemy['x'] += step_x * block_size
+                            enemy['y'] += step_y * block_size
+                            enemy["prev_direction"] = (step_x, step_y)  # Update previous direction
+                            enemy["direction_cooldown"] = 5  # Set cooldown period
+                            moved = True
+                            break
 
+                    # If no movement is possible, reset previous direction
+                   if not moved:
+                        print(f"Chaser at ({enemy['x']}, {enemy['y']}) cannot move.")
+                        enemy["prev_direction"] = (0, 0)  # No movement
     # Check for collision with player
         if abs(enemy["x"] - player_x) < block_size and abs(enemy["y"] - player_y) < block_size: 
             game_over_sound.play()
